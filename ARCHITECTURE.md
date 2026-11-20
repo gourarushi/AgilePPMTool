@@ -67,46 +67,66 @@ flowchart TB
 
 ## Domain model
 
+The diagram below reflects the tables, columns, key constraints, and foreign
+keys declared in [`pmtool/schema.sql`](./pmtool/schema.sql).
+
 ```mermaid
 erDiagram
-    USER ||--o{ PROJECT : owns
-    PROJECT ||--|| BACKLOG : has
+    USER o|--o{ PROJECT : owns
+    PROJECT ||--o| BACKLOG : has
     BACKLOG ||--o{ PROJECT_TASK : contains
 
     USER {
-        long id
-        string username
-        string fullName
-        string password
+        BIGINT id PK
+        VARCHAR_255 username UK
+        VARCHAR_255 full_name
+        VARCHAR_255 password
+        DATETIME_6 create__at
+        DATETIME_6 update__at
     }
+
     PROJECT {
-        long id
-        string projectIdentifier
-        string projectName
-        string description
-        date start_date
-        date end_date
-        string projectLeader
+        BIGINT id PK
+        VARCHAR_255 project_name
+        VARCHAR_255 project_identifier UK
+        VARCHAR_255 description
+        DATETIME_6 start_date
+        DATETIME_6 end_date
+        DATETIME_6 created__at
+        DATETIME_6 updated__at
+        VARCHAR_255 project_leader
+        BIGINT user_id FK
     }
+
     BACKLOG {
-        long id
-        string projectIdentifier
-        int PTSequence
+        BIGINT id PK
+        INT p_t_sequence
+        VARCHAR_255 project_identifier
+        BIGINT project_id FK,UK
     }
+
     PROJECT_TASK {
-        long id
-        string projectSequence
-        string summary
-        string acceptanceCriteria
-        date dueDate
-        string priority
-        string status
+        BIGINT id PK
+        VARCHAR_255 project_sequence UK
+        VARCHAR_255 summary
+        VARCHAR_255 acceptance_criteria
+        DATETIME_6 due_date
+        VARCHAR_255 project_identifier
+        DATETIME_6 create__at
+        DATETIME_6 update__at
+        INT priority
+        VARCHAR_255 status
+        BIGINT backlog_id FK
     }
 ```
 
-Each project belongs to a user and has one backlog. A backlog contains project
-tasks. Project and task APIs use the authenticated principal to scope data to
-its owner.
+`UK` marks unique columns/keys; `FK,UK` on `BACKLOG.project_id` indicates that
+the column is both a foreign key and unique. The SQL permits a project to have
+zero or one backlog, a backlog to have zero or more tasks, and a project to
+have no associated user (the `user_id` column is nullable). Each backlog must
+belong to one project, and each task must belong to one backlog. `priority` is
+an integer ordinal in the current schema; `status` is stored as text. Fields
+without an explicit `NOT NULL` constraint are nullable in this DDL.
 
 ## Main request flows
 
